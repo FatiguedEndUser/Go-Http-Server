@@ -19,7 +19,7 @@ func main() {
 	mux.HandleFunc("/", srvr.HandleIndex)
 	//Using the .Methods() function to specify the allowed HTTP methods
 	// Otherwise gorilla/mux will confuse /user/{name} with /user/create
-	mux.HandleFunc("/user/{name}", srvr.HandleUser).Methods("GET", "PATCH")
+	mux.HandleFunc("/user/{name}", srvr.HandleUser).Methods("GET", "PATCH","DELETE")
 	mux.HandleFunc("/user/create", srvr.HandleCreateUser).Methods("POST", "PUT")
 	
 	

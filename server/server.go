@@ -154,7 +154,11 @@ func (s *Server) HandleUser(writer http.ResponseWriter, request *http.Request) {
 		}
 		s.users[name] = userinfo
 		return
-		
+
+	case http.MethodDelete:
+		log.Printf("Delete User: %s", name)
+		delete(s.users, name)
+		return
 	default:
 		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed) //HTTP 405
 	}
