@@ -18,6 +18,6 @@ func New(ctx context.Context) *Bolt {
 
 //Create implements the database interface
 func (b *Bolt) Create(ctx context.Context, data []byte) error {
-	fmt.Println(data)
+	fmt.Println(string(data))
 	return nil
 }

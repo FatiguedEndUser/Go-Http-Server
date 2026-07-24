@@ -6,8 +6,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"context"
 	"Http-Server/database"
-	"github.com/gorilla/mux"
+	//"github.com/gorilla/mux"
 )
 
 // Default Constructor
@@ -19,6 +20,7 @@ func New(db database.Database) *Server {
 
 // Server is an HTTP server.
 type Server struct {
+	ctx context.Context
 	db database.Database
 }
 
@@ -72,14 +74,22 @@ func (s *Server) HandleCreateUser(writer http.ResponseWriter, request *http.Requ
 			writer.WriteHeader(http.StatusBadRequest) //HTTP 400
 			return
 		}
+		//TODO: Check if the user already exists
 
-		//Replace local implementation with database implementation
-
-		// log.Print("User created: " + user.Name)
-		// s.users[user.Name] = UserInfo{
-		// 	email: user.Email,
-		// 	age:   user.Age,
-		// }
+		
+		//Write to the database
+		v, err := json.Marshal(user)
+		if err != nil{
+			log.Print("Could not marshal request body: " + err.Error())
+			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
+			return
+		}
+		err = s.db.Create(s.ctx, v)
+		if err != nil {
+			log.Print("Could not create user: " + err.Error())
+			writer.WriteHeader(http.StatusInternalServerError) //TODO: Replace with proper error
+			return
+		}
 
 	default:
 		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed)
