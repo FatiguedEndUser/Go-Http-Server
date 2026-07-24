@@ -6,21 +6,20 @@ import (
 	"io"
 	"log"
 	"net/http"
-
+	"Http-Server/database"
 	"github.com/gorilla/mux"
 )
 
 // Default Constructor
-func New() *Server {
+func New(db database.Database) *Server {
 	return &Server{
-		//Fixes nil error when inputing json
-		users: make(map[string]UserInfo),
+		db: db,
 	}
 }
 
 // Server is an HTTP server.
 type Server struct {
-	users map[string]UserInfo //Key -> username
+	db database.Database
 }
 
 // User information Types
@@ -74,92 +73,94 @@ func (s *Server) HandleCreateUser(writer http.ResponseWriter, request *http.Requ
 			return
 		}
 
-		log.Print("User created: " + user.Name)
-		s.users[user.Name] = UserInfo{
-			email: user.Email,
-			age:   user.Age,
-		}
+		//Replace local implementation with database implementation
+
+		// log.Print("User created: " + user.Name)
+		// s.users[user.Name] = UserInfo{
+		// 	email: user.Email,
+		// 	age:   user.Age,
+		// }
 
 	default:
 		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-// HandleUser handles the '/user' request for getting user information, and Updating user information.
+// // HandleUser handles the '/user' request for getting user information, and Updating user information.
 func (s *Server) HandleUser(writer http.ResponseWriter, request *http.Request) {
-	//Fetch the name from the query string
-	//Common among all methods
-	params := mux.Vars(request)
-	name := params["name"]
+// 	//Fetch the name from the query string
+// 	//Common among all methods
+// 	params := mux.Vars(request)
+// 	name := params["name"]
 
-	u, ok := s.users[name]
-	if !ok {
-		writer.WriteHeader(http.StatusNotFound) //HTTP 404
-		return
-	}
+// 	u, ok := s.users[name]
+// 	if !ok {
+// 		writer.WriteHeader(http.StatusNotFound) //HTTP 404
+// 		return
+// 	}
 
-	switch request.Method {
-	case http.MethodGet:
-		returnedUser := User{
-			Name:  name,
-			Email: u.email,
-			Age:   u.age,
-		}
+// 	switch request.Method {
+// 	case http.MethodGet:
+// 		returnedUser := User{
+// 			Name:  name,
+// 			Email: u.email,
+// 			Age:   u.age,
+// 		}
 
-		msg, err := json.Marshal(returnedUser)
-		if err != nil {
-			log.Print("Could not marshal user: " + err.Error())
-			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
-			return
-		}
-		log.Printf("Get User: %s", name)
+// 		msg, err := json.Marshal(returnedUser)
+// 		if err != nil {
+// 			log.Print("Could not marshal user: " + err.Error())
+// 			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
+// 			return
+// 		}
+// 		log.Printf("Get User: %s", name)
 
-		writer.Header().Add("Content-Type", "application/json")
-		writer.Write(msg)
+// 		writer.Header().Add("Content-Type", "application/json")
+// 		writer.Write(msg)
 
-	//Partial update
-	case http.MethodPatch:
-		//Check that the input type is json
-		if contentType := request.Header.Get("Content-Type"); contentType != "application/json" {
-			writer.WriteHeader(http.StatusUnsupportedMediaType)
-			return
-		}
+// 	//Partial update
+// 	case http.MethodPatch:
+// 		//Check that the input type is json
+// 		if contentType := request.Header.Get("Content-Type"); contentType != "application/json" {
+// 			writer.WriteHeader(http.StatusUnsupportedMediaType)
+// 			return
+// 		}
 
-		body, err := io.ReadAll(request.Body)
-		if err != nil {
-			log.Print("Could not read request body: " + err.Error())
-			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
-			return
-		}
-		defer request.Body.Close()
+// 		body, err := io.ReadAll(request.Body)
+// 		if err != nil {
+// 			log.Print("Could not read request body: " + err.Error())
+// 			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
+// 			return
+// 		}
+// 		defer request.Body.Close()
 
-		//Unmarshal the request body into a User struct
-		var user User
-		err = json.Unmarshal(body, &user)
-		if err != nil {
-			log.Print("Could not unmarshal request body: " + err.Error())
-			writer.WriteHeader(http.StatusBadRequest) //HTTP 400
-			return
-		}
+// 		//Unmarshal the request body into a User struct
+// 		var user User
+// 		err = json.Unmarshal(body, &user)
+// 		if err != nil {
+// 			log.Print("Could not unmarshal request body: " + err.Error())
+// 			writer.WriteHeader(http.StatusBadRequest) //HTTP 400
+// 			return
+// 		}
 
-		log.Printf("Update User: %s", name)
+// 		log.Printf("Update User: %s", name)
 		
-		//Get users
-		userinfo := s.users[name]
-		if user.Age != 0 {
-			userinfo.age = user.Age
-		}
-		if user.Email != "" {
-			userinfo.email = user.Email
-		}
-		s.users[name] = userinfo
-		return
+// 		//Get users
+// 		userinfo := s.users[name]
+// 		if user.Age != 0 {
+// 			userinfo.age = user.Age
+// 		}
+// 		if user.Email != "" {
+// 			userinfo.email = user.Email
+// 		}
+// 		s.users[name] = userinfo
+// 		return
 
-	case http.MethodDelete:
-		log.Printf("Delete User: %s", name)
-		delete(s.users, name)
-		return
-	default:
-		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed) //HTTP 405
-	}
+// 	case http.MethodDelete:
+// 		log.Printf("Delete User: %s", name)
+// 		delete(s.users, name)
+// 		return
+// 	default:
+// 		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed) //HTTP 405
+// 	}
 }

@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"context"
 	"Http-Server/server"
+	"Http-Server/database/bolt"
 	"github.com/gorilla/mux"
 )
 
@@ -14,8 +16,11 @@ func main() {
 	address := ":9090"
 	mux := mux.NewRouter()
 
+	ctx := context.Background()
+	blt := bolt.New(ctx)
+
 	//Server
-	srvr := server.New()
+	srvr := server.New(blt)
 	mux.HandleFunc("/", srvr.HandleIndex)
 	//Using the .Methods() function to specify the allowed HTTP methods
 	// Otherwise gorilla/mux will confuse /user/{name} with /user/create
