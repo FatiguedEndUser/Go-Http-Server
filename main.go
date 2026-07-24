@@ -17,7 +17,15 @@ func main() {
 	mux := mux.NewRouter()
 
 	ctx := context.Background()
-	blt := bolt.New(ctx)
+	blt, err := bolt.New(ctx, "./data")
+	if err != nil {
+		log.Fatal("Failed to start db")
+	}
+
+	//Time out for database operations
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	
 
 	//Server
 	srvr := server.New(blt)
