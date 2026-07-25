@@ -1,10 +1,10 @@
 package bolt
 
 import (
+	"Http-Server/database"
 	"context"
 	"fmt"
-	"log"
-
+	"encoding/json"
 	"github.com/boltdb/bolt"
 )
 
@@ -41,13 +41,37 @@ func New(ctx context.Context, directory string) (*Bolt, error) {
 	}, nil
 }
 
+type UserInfo struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Age   int    `json:"age"`
+}
+
 //Closes the bolt database
 func (b *Bolt) Close(ctx context.Context) error {
 	return b.db.Close()
 }
 
 //Create implements the database interface
-func (b *Bolt) Create(ctx context.Context, data []byte) error {
-	fmt.Println(string(data))
+func (b *Bolt) Create(ctx context.Context, user database.User) error {
+	userinfo := UserInfo{
+		Name:  user.Name,
+		Email: user.Email,
+		Age:   user.Age,
+	}
+	
+	v, err := json.Marshal(userinfo)
+	if err != nil {
+		return err
+	}
+	b.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucketName))
+		return b.Put([]byte(user.Name), v)
+	})
 	return nil
+}
+
+//Get implements the database interface
+func (b *Bolt) Get(ctx context.Context, name string) *database.User {
+	return nil 
 }

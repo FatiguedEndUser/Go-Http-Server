@@ -8,12 +8,13 @@ import (
 	"net/http"
 	"context"
 	"Http-Server/database"
-	//"github.com/gorilla/mux"
+	"github.com/gorilla/mux"
 )
 
 // Default Constructor
-func New(db database.Database) *Server {
+func New(ctx context.Context, db database.Database) *Server {
 	return &Server{
+		ctx: ctx,
 		db: db,
 	}
 }
@@ -24,13 +25,6 @@ type Server struct {
 	db database.Database
 }
 
-// User information Types
-// User is the JSON value thats sent as a response to a request
-type User struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Age   int    `json:"age"`
-}
 
 // User info is the information that is stored per user
 type UserInfo struct {
@@ -67,27 +61,30 @@ func (s *Server) HandleCreateUser(writer http.ResponseWriter, request *http.Requ
 		defer request.Body.Close()
 
 		//Unmarshal the request body into a User struct
-		var user User
+		var user database.User
 		err = json.Unmarshal(body, &user)
 		if err != nil {
 			log.Print("Could not unmarshal request body: " + err.Error())
-			writer.WriteHeader(http.StatusBadRequest) //HTTP 400
+			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		//TODO: Check if the user already exists
+		//Validate
+		// User not empty
+		// User must not already exist
+
+		if user.Name == "" {
+			log.Print("Empty Username")
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		
 
 		
 		//Write to the database
-		v, err := json.Marshal(user)
-		if err != nil{
-			log.Print("Could not marshal request body: " + err.Error())
-			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
-			return
-		}
-		err = s.db.Create(s.ctx, v)
+		err = s.db.Create(s.ctx, user)
 		if err != nil {
 			log.Print("Could not create user: " + err.Error())
-			writer.WriteHeader(http.StatusInternalServerError) //TODO: Replace with proper error
+			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
@@ -100,33 +97,27 @@ func (s *Server) HandleCreateUser(writer http.ResponseWriter, request *http.Requ
 func (s *Server) HandleUser(writer http.ResponseWriter, request *http.Request) {
 // 	//Fetch the name from the query string
 // 	//Common among all methods
-// 	params := mux.Vars(request)
-// 	name := params["name"]
+	params := mux.Vars(request)
+	name := params["name"]
 
-// 	u, ok := s.users[name]
-// 	if !ok {
-// 		writer.WriteHeader(http.StatusNotFound) //HTTP 404
-// 		return
-// 	}
+	switch request.Method {
+	case http.MethodGet:
+		log.Printf("Get User: %s", name)
+		user := s.db.Get(s.ctx, name)
+		if user == nil {
+			writer.WriteHeader(http.StatusNotFound) //HTTP 404
+			return
+		}
 
-// 	switch request.Method {
-// 	case http.MethodGet:
-// 		returnedUser := User{
-// 			Name:  name,
-// 			Email: u.email,
-// 			Age:   u.age,
-// 		}
+		msg, err := json.Marshal(user)
+		if err != nil {
+			log.Print("Could not marshal user: " + err.Error())
+			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
+			return
+		}
 
-// 		msg, err := json.Marshal(returnedUser)
-// 		if err != nil {
-// 			log.Print("Could not marshal user: " + err.Error())
-// 			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
-// 			return
-// 		}
-// 		log.Printf("Get User: %s", name)
-
-// 		writer.Header().Add("Content-Type", "application/json")
-// 		writer.Write(msg)
+		writer.Header().Add("Content-Type", "application/json")
+		writer.Write(msg)
 
 // 	//Partial update
 // 	case http.MethodPatch:
@@ -170,7 +161,7 @@ func (s *Server) HandleUser(writer http.ResponseWriter, request *http.Request) {
 // 		log.Printf("Delete User: %s", name)
 // 		delete(s.users, name)
 // 		return
-// 	default:
-// 		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed) //HTTP 405
-// 	}
+	default:
+		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed) //HTTP 405
+	}
 }
