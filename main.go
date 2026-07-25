@@ -28,7 +28,7 @@ func main() {
 	
 
 	//Server
-	srvr := crud.New(ctx, blt)
+	srvr := server_operations.New(ctx, blt)
 	mux.HandleFunc("/", srvr.HandleIndex)
 	//Using the .Methods() function to specify the allowed HTTP methods
 	// Otherwise gorilla/mux will confuse /user/{name} with /user/create
