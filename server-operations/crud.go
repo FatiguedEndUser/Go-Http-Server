@@ -1,4 +1,4 @@
-package server
+package server_operations
 
 import (
 	"Http-Server/pages"
@@ -77,8 +77,6 @@ func (s *Server) HandleCreateUser(writer http.ResponseWriter, request *http.Requ
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		
-
 		
 		//Write to the database
 		err = s.db.Create(s.ctx, user)

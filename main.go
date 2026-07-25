@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 	"context"
-	"Http-Server/server"
+	"Http-Server/server-operations"
 	"Http-Server/database/bolt"
 	"github.com/gorilla/mux"
 )
@@ -28,7 +28,7 @@ func main() {
 	
 
 	//Server
-	srvr := server.New(ctx, blt)
+	srvr := crud.New(ctx, blt)
 	mux.HandleFunc("/", srvr.HandleIndex)
 	//Using the .Methods() function to specify the allowed HTTP methods
 	// Otherwise gorilla/mux will confuse /user/{name} with /user/create
