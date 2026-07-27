@@ -25,6 +25,7 @@ This project demonstrates a modular HTTP server implementing full CRUD operation
 Built as a showcase of modern Go practices including idiomatic error patterns, proper HTTP semantics, and clean separation of concerns.
 Architecture
 Layered Design
+
 main.go (Application Entry Point)
   - Initializes BoltDB
   - Configures router & server
@@ -40,6 +41,7 @@ main.go (Application Entry Point)
             database/database.go
             - Database interface
             - User struct
+    
 Component Responsibilities
 Component	Responsibility
 main.go	Bootstrap, dependency injection, server lifecycle
