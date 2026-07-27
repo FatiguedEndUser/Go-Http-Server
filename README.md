@@ -3,12 +3,6 @@ User Management HTTP Server
 A production-ready RESTful API for managing user data, built with Go, Gorilla/Mux, and BoltDB. Implements clean architecture with separation of concerns, proper error handling, and context-aware operations.
 Table of Contents
 
-Response:
-
-Response:
-
-Response:
-
     Overview
     Architecture
     Tech Stack
