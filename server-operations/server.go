@@ -1,13 +1,14 @@
 package server_operations
 
 import (
+	"Http-Server/database"
 	"Http-Server/pages"
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"context"
-	"Http-Server/database"
 	"github.com/gorilla/mux"
 )
 
@@ -71,7 +72,14 @@ func (s *Server) HandleCreateUser(writer http.ResponseWriter, request *http.Requ
 		//Validate
 		// User not empty
 		// User must not already exist
-
+		got := s.db.Get(s.ctx, user.Name)
+		if got != nil {
+			writer.WriteHeader(http.StatusBadRequest)
+			writer.Write([]byte(fmt.Sprintf("User already exists: %w", user.Name)))
+			return
+		}
+		
+		
 		if user.Name == "" {
 			log.Print("Empty Username")
 			writer.WriteHeader(http.StatusBadRequest)
@@ -117,48 +125,54 @@ func (s *Server) HandleUser(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Add("Content-Type", "application/json")
 		writer.Write(msg)
 
-// 	//Partial update
-// 	case http.MethodPatch:
-// 		//Check that the input type is json
-// 		if contentType := request.Header.Get("Content-Type"); contentType != "application/json" {
-// 			writer.WriteHeader(http.StatusUnsupportedMediaType)
-// 			return
-// 		}
+	//Partial update
+	case http.MethodPatch:
+		//Check that the input type is json
+		if contentType := request.Header.Get("Content-Type"); contentType != "application/json" {
+			writer.WriteHeader(http.StatusUnsupportedMediaType)
+			return
+		}
 
-// 		body, err := io.ReadAll(request.Body)
-// 		if err != nil {
-// 			log.Print("Could not read request body: " + err.Error())
-// 			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
-// 			return
-// 		}
-// 		defer request.Body.Close()
+		body, err := io.ReadAll(request.Body)
+		if err != nil {
+			log.Print("Could not read request body: " + err.Error())
+			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
+			return
+		}
+		defer request.Body.Close()
 
-// 		//Unmarshal the request body into a User struct
-// 		var user User
-// 		err = json.Unmarshal(body, &user)
-// 		if err != nil {
-// 			log.Print("Could not unmarshal request body: " + err.Error())
-// 			writer.WriteHeader(http.StatusBadRequest) //HTTP 400
-// 			return
-// 		}
+		//Unmarshal the request body into a User struct
+		var user database.User
+		err = json.Unmarshal(body, &user)
+		if err != nil {
+			log.Print("Could not unmarshal request body: " + err.Error())
+			writer.WriteHeader(http.StatusBadRequest) //HTTP 400
+			return
+		}
 
-// 		log.Printf("Update User: %s", name)
+		//Validation
+		if user.Name == "" {
+			log.Print("Name is required")
+			writer.WriteHeader(http.StatusBadRequest) //HTTP 400
+			return
+		}
 		
-// 		//Get users
-// 		userinfo := s.users[name]
-// 		if user.Age != 0 {
-// 			userinfo.age = user.Age
-// 		}
-// 		if user.Email != "" {
-// 			userinfo.email = user.Email
-// 		}
-// 		s.users[name] = userinfo
-// 		return
 
-// 	case http.MethodDelete:
-// 		log.Printf("Delete User: %s", name)
-// 		delete(s.users, name)
-// 		return
+		log.Printf("Update User: %s", name)
+		s.db.Update(s.ctx, user)
+		msg, err := json.Marshal(user)
+		if err != nil {
+			log.Print("Could not update user: " + err.Error())
+			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
+			return 
+		}
+		writer.Header().Add("Content-Type", "application/json")
+		writer.Write(msg)
+
+	// case http.MethodDelete:
+	// 	log.Printf("Delete User: %s", name)
+	// 	delete(s.users, name)
+	// 	return
 	default:
 		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed) //HTTP 405
 	}

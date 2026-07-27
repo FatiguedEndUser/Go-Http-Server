@@ -15,4 +15,6 @@ type User struct {
 type Database interface {
 	Create(ctx context.Context, user User) error
 	Get(ctx context.Context, name string) *User
+	Update(ctx context.Context, user User) (*User, error)
+	
 }
