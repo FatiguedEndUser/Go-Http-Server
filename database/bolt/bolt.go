@@ -131,3 +131,14 @@ func (b *Bolt) Update(ctx context.Context, input database.User) (*database.User,
 
 	return &current, nil
 }
+
+func (b *Bolt) Delete(ctx context.Context, name string) error {
+	err := b.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(bucketName))
+		if bucket == nil {
+			return fmt.Errorf("bucket not found")
+		}
+		return bucket.Delete([]byte(name))
+	})
+	return err
+}

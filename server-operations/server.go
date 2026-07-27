@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+
 	"github.com/gorilla/mux"
 )
 
@@ -106,74 +107,78 @@ func (s *Server) HandleUser(writer http.ResponseWriter, request *http.Request) {
 	params := mux.Vars(request)
 	name := params["name"]
 
+	user := s.db.Get(s.ctx, name)
+	if user == nil {
+		writer.WriteHeader(http.StatusNotFound) //HTTP 404
+		return
+	}
+
 	switch request.Method {
-	case http.MethodGet:
-		log.Printf("Get User: %s", name)
-		user := s.db.Get(s.ctx, name)
-		if user == nil {
-			writer.WriteHeader(http.StatusNotFound) //HTTP 404
-			return
-		}
+		case http.MethodGet:
+			log.Printf("Get User: %s", name)
+			msg, err := json.Marshal(user)
+			if err != nil {
+				log.Print("Could not marshal user: " + err.Error())
+				writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
+				return
+			}
 
-		msg, err := json.Marshal(user)
-		if err != nil {
-			log.Print("Could not marshal user: " + err.Error())
-			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
-			return
-		}
+			writer.Header().Add("Content-Type", "application/json")
+			writer.Write(msg)
 
-		writer.Header().Add("Content-Type", "application/json")
-		writer.Write(msg)
+		//Partial update
+		case http.MethodPatch:
+			//Check that the input type is json
+			if contentType := request.Header.Get("Content-Type"); contentType != "application/json" {
+				writer.WriteHeader(http.StatusUnsupportedMediaType)
+				return
+			}
 
-	//Partial update
-	case http.MethodPatch:
-		//Check that the input type is json
-		if contentType := request.Header.Get("Content-Type"); contentType != "application/json" {
-			writer.WriteHeader(http.StatusUnsupportedMediaType)
-			return
-		}
+			body, err := io.ReadAll(request.Body)
+			if err != nil {
+				log.Print("Could not read request body: " + err.Error())
+				writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
+				return
+			}
+			defer request.Body.Close()
 
-		body, err := io.ReadAll(request.Body)
-		if err != nil {
-			log.Print("Could not read request body: " + err.Error())
-			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
-			return
-		}
-		defer request.Body.Close()
+			//Unmarshal the request body into a User struct
+			var user database.User
+			err = json.Unmarshal(body, &user)
+			if err != nil {
+				log.Print("Could not unmarshal request body: " + err.Error())
+				writer.WriteHeader(http.StatusBadRequest) //HTTP 400
+				return
+			}
 
-		//Unmarshal the request body into a User struct
-		var user database.User
-		err = json.Unmarshal(body, &user)
-		if err != nil {
-			log.Print("Could not unmarshal request body: " + err.Error())
-			writer.WriteHeader(http.StatusBadRequest) //HTTP 400
-			return
-		}
+			//Validation
+			if user.Name == "" {
+				log.Print("Name is required")
+				writer.WriteHeader(http.StatusBadRequest) //HTTP 400
+				return
+			}
 
-		//Validation
-		if user.Name == "" {
-			log.Print("Name is required")
-			writer.WriteHeader(http.StatusBadRequest) //HTTP 400
-			return
-		}
+			log.Printf("Update User: %s", name)
+			s.db.Update(s.ctx, user)
+			msg, err := json.Marshal(user)
+			if err != nil {
+				log.Print("Could not update user: " + err.Error())
+				writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
+				return
+			}
+			writer.Header().Add("Content-Type", "application/json")
+			writer.Write(msg)
 		
-
-		log.Printf("Update User: %s", name)
-		s.db.Update(s.ctx, user)
-		msg, err := json.Marshal(user)
-		if err != nil {
-			log.Print("Could not update user: " + err.Error())
-			writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
-			return 
-		}
-		writer.Header().Add("Content-Type", "application/json")
-		writer.Write(msg)
-
-	// case http.MethodDelete:
-	// 	log.Printf("Delete User: %s", name)
-	// 	delete(s.users, name)
-	// 	return
-	default:
-		http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed) //HTTP 405
+		case http.MethodDelete:
+			log.Printf("Delete User: %s", name)
+			err := s.db.Delete(s.ctx, name)
+			if err != nil {
+				log.Print("Could not delete user: " + err.Error())
+				writer.WriteHeader(http.StatusInternalServerError) //HTTP 500
+				return
+			}
+			
+		default:
+			http.Error(writer, "Method not allowed", http.StatusMethodNotAllowed) //HTTP 405
 	}
 }
