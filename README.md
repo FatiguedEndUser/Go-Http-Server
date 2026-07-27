@@ -42,12 +42,8 @@ main.go (Application Entry Point)
             - Database interface
             - User struct
     
-Component Responsibilities
-Component	Responsibility
-main.go	Bootstrap, dependency injection, server lifecycle
-server.go	HTTP handlers, request/response translation, validation
-bolt.go	Persistence implementation, transaction management
-database.go	Shared contracts, domain models (User struct)
+ComponentResponsibilitymain.goBootstrap, dependency injection, server lifecycleserver.goHTTP handlers, request/response translation, validationbolt.goPersistence implementation, transaction managementdatabase.goShared contracts, domain models (User struct)
+
 Tech Stack
 Layer	Technology	Purpose
 Router	github.com/gorilla/mux	Request routing and path variables
