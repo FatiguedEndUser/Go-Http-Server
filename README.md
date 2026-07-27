@@ -29,12 +29,6 @@ Built as a showcase of modern Go practices including idiomatic error patterns, p
 
 ### Layered Design
 
-Response:
-
-Response:
-
-Response:
-
 main.go (Application Entry Point)
 
     Initializes BoltDB
@@ -160,7 +154,7 @@ HTTP/1.1 204 No Content
 
 1. Clone repository
    ```bash
-   git clone <repository-url>
+   git clone [<repository-url>](https://github.com/FatiguedEndUser/Go-Http-Server.git)
    cd Http-Server
    ```
 
