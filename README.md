@@ -265,9 +265,8 @@ Kept dependencies minimal. Validation logic lives in handlers:
 
 1. Interface-first design pays dividends when adding new features or storage backends
 2. Error wrapping (%w) makes debugging significantly easier in production
-3. Graceful shutdown prevents data loss and improves UX during deployments
-4. Minimal dependencies reduce build complexity and attack surface
-5. Context propagation is essential for timeouts across network calls
+3. Minimal dependencies reduce build complexity and attack surface
+4. Context propagation is essential for timeouts across network calls
 
 ## License
 
