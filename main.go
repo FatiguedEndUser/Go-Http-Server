@@ -1,51 +1,60 @@
+// Package main is the entry point for the HTTP user CRUD server.
+// It initializes the BoltDB persistence layer, configures HTTP routing,
+// and starts listening for requests on port 9090.
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"net/http"
 	"time"
-	"context"
-	"Http-Server/server-operations"
+
 	"Http-Server/database/bolt"
+	"Http-Server/server-operations"
+
 	"github.com/gorilla/mux"
 )
 
 func main() {
-	//Http Variables
+	// Server configuration
 	address := ":9090"
-	mux := mux.NewRouter()
 
+	// Initialize context for database startup
 	ctx := context.Background()
 	blt, err := bolt.New(ctx, "./data")
 	if err != nil {
-		log.Fatal("Failed to start db")
+		log.Fatal("failed to start database: ", err)
 	}
+	defer func() {
+		if err := blt.Close(ctx); err != nil {
+			log.Print("warning: failed to close database: ", err)
+		}
+	}()
 
-	//Time out for database operations
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	// Timeout context for database operations
+	opCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	
 
-	//Server
-	srvr := server_operations.New(ctx, blt)
-	mux.HandleFunc("/", srvr.HandleIndex)
-	//Using the .Methods() function to specify the allowed HTTP methods
-	// Otherwise gorilla/mux will confuse /user/{name} with /user/create
-	mux.HandleFunc("/user/{name}", srvr.HandleUser).Methods("GET", "PATCH","DELETE")
-	mux.HandleFunc("/user/create", srvr.HandleCreateUser).Methods("POST", "PUT")
-	
-	
-	//Http Server
+	// Set up router and server operations
+	router := mux.NewRouter()
+	srvr := server_operations.New(opCtx, blt)
+
+	router.HandleFunc("/", srvr.HandleIndex)
+	// Using .Methods() to specify allowed HTTP methods.
+	// Without it, gorilla/mux would confuse /user/{name} with /user/create.
+	router.HandleFunc("/user/{name}", srvr.HandleUser).Methods("GET", "PATCH", "DELETE")
+	router.HandleFunc("/user/create", srvr.HandleCreateUser).Methods("POST", "PUT")
+
+	// Configure HTTP server
 	server := &http.Server{
 		Addr:           address,
-		Handler:        mux,
+		Handler:        router,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
+		IdleTimeout:    60 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1MB
 	}
 
-	//CLI Notification
-	fmt.Println("Start Server ", address)
+	log.Printf("starting server on %s", address)
 	log.Fatal(server.ListenAndServe())
 }
