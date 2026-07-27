@@ -3,8 +3,9 @@ package bolt
 import (
 	"Http-Server/database"
 	"context"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"log"
 	"github.com/boltdb/bolt"
 )
 
@@ -72,6 +73,22 @@ func (b *Bolt) Create(ctx context.Context, user database.User) error {
 }
 
 //Get implements the database interface
-func (b *Bolt) Get(ctx context.Context, name string) *database.User {
-	return nil 
+func (b *Bolt) Get(ctx context.Context, name string) (user *database.User) {
+	var raw []byte
+	b.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(bucketName))
+		raw = b.Get([]byte(name))
+		return nil
+	})
+	if len(raw) == 0{
+		return nil
+	}
+	
+	var u database.User
+	err := json.Unmarshal(raw, &u)
+	if err != nil {
+		log.Fatalf("Database Corruption %w", err)
+	}
+	user = &u
+	return  
 }
