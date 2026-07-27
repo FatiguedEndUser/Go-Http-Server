@@ -1,138 +1,165 @@
-User Management HTTP Server
+# User Management HTTP Server
 
 A production-ready RESTful API for managing user data, built with Go, Gorilla/Mux, and BoltDB. Implements clean architecture with separation of concerns, proper error handling, and context-aware operations.
-Table of Contents
 
-    Overview
-    Architecture
-    Tech Stack
-    Features
-    API Reference
-    Getting Started
-    Design Decisions
-    Testing Strategy
-    Future Improvements
+## Table of Contents
 
-Overview
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Features](#features)
+- [API Reference](#api-reference)
+- [Getting Started](#getting-started)
+- [Design Decisions](#design-decisions)
+- [Testing Strategy](#testing-strategy)
+- [Future Improvements](#future-improvements)
+
+## Overview
 
 This project demonstrates a modular HTTP server implementing full CRUD operations on a user resource. Key highlights:
 
-    Interface-driven design — Loose coupling between HTTP layer and persistence via database.Database contract
-    Proper error handling — Error wrapping with %w, no silent failures, graceful degradation on data corruption
-    Context propagation — Timeout and cancellation support throughout the stack
-    Resource cleanup — Deferred database closes, graceful shutdown patterns
+- Interface-driven design — Loose coupling between HTTP layer and persistence via database.Database contract
+- Proper error handling — Error wrapping with %w, no silent failures, graceful degradation on data corruption
+- Context propagation — Timeout and cancellation support throughout the stack
+- Resource cleanup — Deferred database closes, graceful shutdown patterns
 
 Built as a showcase of modern Go practices including idiomatic error patterns, proper HTTP semantics, and clean separation of concerns.
-Architecture
-Layered Design
+
+## Architecture
+
+### Layered Design
+
+Response:
+
+Response:
+
+Response:
 
 main.go (Application Entry Point)
-  - Initializes BoltDB
-  - Configures router & server
-  - Handles graceful shutdown
-    |
-    +---> server_operations/server.go --+
-    |       - HandleIndex               |
-    |       - HandleCreateUser          |---> database/bolt/bolt.go
-    |       - HandleUser (CRUD)         |      - Create(), Get(), Update(), Delete()
-    +-----------------------------------+
-                    ^
-                    |
-            database/database.go
-            - Database interface
-            - User struct
-    
-ComponentResponsibilitymain.goBootstrap, dependency injection, server lifecycleserver.goHTTP handlers, request/response translation, validationbolt.goPersistence implementation, transaction managementdatabase.goShared contracts, domain models (User struct)
 
-Tech Stack
-Layer	Technology	Purpose
-Router	github.com/gorilla/mux	Request routing and path variables
-Database	github.com/boltdb/bolt	Embedded key-value storage
-Language	Go 1.20+	Type safety, concurrency, performance
-Serialization	encoding/json	Request/response payloads
-Context	context package	Timeout/cancellation propagation
-Features
-Feature	Implementation Detail
-RESTful API	Standard HTTP methods (GET, POST, PUT, PATCH, DELETE)
-JSON Request/Response	Content-Type enforcement, automatic marshaling
-Input Validation	Name required, existence checks, type validation
-Error Wrapping	%w for traceable error chains
-Graceful Degradation	Corrupt data logged but does not crash application
-Context Timeouts	30s database operation timeout, 10s HTTP timeout
-Deferred Cleanup	Database closes reliably on exit
-Idempotent Operations	CREATE and DELETE handle duplicates safely
-API Reference
-Endpoints
-Method	Endpoint	Description	Success	Error Codes
-GET	/	Serve dashboard HTML	200 OK	N/A
-GET	/user/{name}	Retrieve user by name	200 OK + JSON	404 Not Found
-POST	/user/create	Create new user	201 Created + JSON	400 Bad Request, 415 Unsupported Media
-PUT	/user/create	Alias for POST	201 Created + JSON	Same as POST
-PATCH	/user/{name}	Partially update user	200 OK + JSON	400, 404, 415
-DELETE	/user/{name}	Remove user	204 No Content	500 Internal Server
-Request/Response Examples
+    Initializes BoltDB
+    Configures router & server
+    Handles graceful shutdown | +---> server_operations/server.go --+ | - HandleIndex | | - HandleCreateUser |---> database/bolt/bolt.go | - HandleUser (CRUD) | - Create(), Get(), Update(), Delete() +-----------------------------------+ ^ | database/database.go - Database interface - User struct
 
-Create User
+
+### Component Responsibilities
+
+| Component | Responsibility |
+|-----------|----------------|
+| main.go | Bootstrap, dependency injection, server lifecycle |
+| server.go | HTTP handlers, request/response translation, validation |
+| bolt.go | Persistence implementation, transaction management |
+| database.go | Shared contracts, domain models (User struct) |
+
+## Tech Stack
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| Router | github.com/gorilla/mux | Request routing and path variables |
+| Database | github.com/boltdb/bolt | Embedded key-value storage |
+| Language | Go 1.20+ | Type safety, concurrency, performance |
+| Serialization | encoding/json | Request/response payloads |
+| Context | context package | Timeout/cancellation propagation |
+
+## Features
+
+| Feature | Implementation Detail |
+|---------|----------------------|
+| RESTful API | Standard HTTP methods (GET, POST, PUT, PATCH, DELETE) |
+| JSON Request/Response | Content-Type enforcement, automatic marshaling |
+| Input Validation | Name required, existence checks, type validation |
+| Error Wrapping | %w for traceable error chains |
+| Graceful Degradation | Corrupt data logged but does not crash application |
+| Context Timeouts | 30s database operation timeout, 10s HTTP timeout |
+| Deferred Cleanup | Database closes reliably on exit |
+| Idempotent Operations | CREATE and DELETE handle duplicates safely |
+
+## API Reference
+
+### Endpoints
+
+| Method | Endpoint | Description | Success | Error Codes |
+|--------|----------|-------------|---------|-------------|
+| GET | / | Serve dashboard HTML | 200 OK | N/A |
+| GET | /user/{name} | Retrieve user by name | 200 OK + JSON | 404 Not Found |
+| POST | /user/create | Create new user | 201 Created + JSON | 400 Bad Request, 415 Unsupported Media |
+| PUT | /user/create | Alias for POST | 201 Created + JSON | Same as POST |
+| PATCH | /user/{name} | Partially update user | 200 OK + JSON | 400, 404, 415 |
+| DELETE | /user/{name} | Remove user | 204 No Content | 500 Internal Server |
+
+### Request/Response Examples
+
+**Create User**
 
 Request:
-curl -X POST http://localhost:9090/user/create \
-  -H "Content-Type: application/json" \
-  -d '{"name": "alice", "email": "alice@example.com", "age": 30}'
+
+bash curl -X POST http://localhost:9090/user/create
+-H "Content-Type: application/json"
+-d '{"name": "alice", "email": "alice@example.com", "age": 30}'
 
 Response:
-HTTP/1.1 201 Created
-Content-Type: application/json
+
+HTTP/1.1 201 Created Content-Type: application/json
 
 {"name":"alice","email":"alice@example.com","age":30}
 
-Get User
+**Get User**
 
 Request:
-curl http://localhost:9090/user/alice
+
+bash curl http://localhost:9090/user/alice
 
 Response:
-HTTP/1.1 200 OK
-Content-Type: application/json
+
+HTTP/1.1 200 OK Content-Type: application/json
 
 {"name":"alice","email":"alice@example.com","age":30}
 
-Update User (Partial)
+**Update User (Partial)**
 
 Request:
-curl -X PATCH http://localhost:9090/user/alice \
-  -H "Content-Type: application/json" \
-  -d '{"age": 31}'
+
+bash curl -X PATCH http://localhost:9090/user/alice
+-H "Content-Type: application/json"
+-d '{"age": 31}'
 
 Response:
-HTTP/1.1 200 OK
-Content-Type: application/json
+
+HTTP/1.1 200 OK Content-Type: application/json
 
 {"name":"alice","email":"alice@example.com","age":31}
 
-Delete User
+**Delete User**
 
 Request:
-curl -X DELETE http://localhost:9090/user/alice
+
+bash curl -X DELETE http://localhost:9090/user/alice
 
 Response:
+
 HTTP/1.1 204 No Content
-Error Responses
-Status	Body	Meaning
-400 Bad Request	"user already exists: alice"	Duplicate or invalid input
-404 Not Found	(empty)	User does not exist
-405 Method Not Allowed	"method not allowed"	Invalid HTTP verb
-415 Unsupported Media	(empty)	Content-Type not application/json
-500 Internal Server	(empty)	Unexpected error (check logs)
-Getting Started
-Prerequisites
 
-    Go 1.20 or higher
-    Access to module dependencies (go mod tidy)
+### Error Responses
 
-Installation
+| Status | Body | Meaning |
+|--------|------|---------|
+| 400 Bad Request | "user already exists: alice" | Duplicate or invalid input |
+| 404 Not Found | (empty) | User does not exist |
+| 405 Method Not Allowed | "method not allowed" | Invalid HTTP verb |
+| 415 Unsupported Media | (empty) | Content-Type not application/json |
+| 500 Internal Server | (empty) | Unexpected error (check logs) |
 
-    Clone repository
+## Getting Started
 
+### Prerequisites
+
+- Go 1.20 or higher
+- Access to module dependencies (go mod tidy)
+
+### Installation
+
+1. Clone repository
+   ```bash
    git clone <repository-url>
    cd Http-Server
    ```
@@ -253,5 +280,3 @@ Kept dependencies minimal. Validation logic lives in handlers:
 MIT License — see LICENSE file for details.
 
 Built with ❤️ using Go
-
----
